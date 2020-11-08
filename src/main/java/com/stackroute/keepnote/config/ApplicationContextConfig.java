@@ -55,17 +55,16 @@ public class ApplicationContextConfig {
 	{
 		BasicDataSource dataSource = new BasicDataSource();
 		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-		dataSource.setUrl("jdbc:mysql://localhost:3306/NoteSchemaTest"
+		//dataSource.setUrl("jdbc:mysql://localhost:3306/NoteSchemaTest"
+		//+"?verifyServerCertificate=false&useSSL=false&requireSSL=false");
+		//dataSource.setUsername("root");
+		//dataSource.setPassword("root");
+
+		dataSource.setUrl("jdbc:mysql://" + System.getenv("MYSQL_HOST") + ":3306/" +
+				System.getenv("MYSQL_DATABASE")
 		+"?verifyServerCertificate=false&useSSL=false&requireSSL=false");
-		dataSource.setUsername("root");
-		dataSource.setPassword("root");
-		/*
-		 * dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
-		 * dataSource.setUrl("jdbc:mysql://" + System.getenv("MYSQL_HOST") + ":3306/" +
-		 * System.getenv("MYSQL_DATABASE")
-		 * +"?verifyServerCertificate=false&useSSL=false&requireSSL=false");
-		 * dataSource.setUsername(System.getenv("MYSQL_USER"));
-		 dataSource.setPassword(System.getenv("MYSQL_PASSWORD"));*/
+		dataSource.setUsername(System.getenv("MYSQL_USER"));
+		dataSource.setPassword(System.getenv("MYSQL_PASSWORD"));
 		return dataSource;
 	}
 
@@ -74,27 +73,27 @@ public class ApplicationContextConfig {
 	 * 2. Dialect 3. hbm2ddl
 	 */
 	Properties hibernateProperties() {
-		   Properties properties = new Properties();
-		   properties.setProperty("hibernate.dialect","org.hibernate.dialect.MySQL5InnoDBDialect");
-		   properties.setProperty("hibernate.hbm2ddl.auto","create");
-		   properties.setProperty("hibernate.show_sql","true");
-		   properties.setProperty("hibernate.format_sql","true");
-		   return properties;
+		Properties properties = new Properties();
+		properties.setProperty("hibernate.dialect","org.hibernate.dialect.MySQL5InnoDBDialect");
+		properties.setProperty("hibernate.hbm2ddl.auto","create");
+		properties.setProperty("hibernate.show_sql","true");
+		properties.setProperty("hibernate.format_sql","true");
+		return properties;
 	}
 
 	/*
 	 * Define the bean for SessionFactory. Hibernate SessionFactory is the factory
 	 * class through which we get sessions and perform database operations.
 	 */
-		@Bean
-	   public LocalSessionFactoryBean sessionFactory() {
-	      LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
-	      sessionFactory.setDataSource(dataSource());
-	      sessionFactory.setPackagesToScan("com.stackroute.keepnote.model");
-	      sessionFactory.setHibernateProperties(hibernateProperties());
-	     // System.out.println("session factory"+sessionFactory);
-	      return sessionFactory;
-	   }
+	@Bean
+	public LocalSessionFactoryBean sessionFactory() {
+		LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
+		sessionFactory.setDataSource(dataSource());
+		sessionFactory.setPackagesToScan("com.stackroute.keepnote.model");
+		sessionFactory.setHibernateProperties(hibernateProperties());
+		// System.out.println("session factory"+sessionFactory);
+		return sessionFactory;
+	}
 
 	/*
 	 * Define the bean for Transaction Manager. HibernateTransactionManager handles
@@ -104,11 +103,11 @@ public class ApplicationContextConfig {
 	 * JDBC too. HibernateTransactionManager allows bulk update and bulk insert and
 	 * ensures data integrity.
 	 */
-		   @Bean
-		   @Autowired
-		   public HibernateTransactionManager transactionManager( SessionFactory sessionFactory) {
-		      HibernateTransactionManager txManager = new HibernateTransactionManager();
-		      txManager.setSessionFactory(sessionFactory);
-		      return txManager;
-		   }
+	@Bean
+	@Autowired
+	public HibernateTransactionManager transactionManager( SessionFactory sessionFactory) {
+		HibernateTransactionManager txManager = new HibernateTransactionManager();
+		txManager.setSessionFactory(sessionFactory);
+		return txManager;
+	}
 }
