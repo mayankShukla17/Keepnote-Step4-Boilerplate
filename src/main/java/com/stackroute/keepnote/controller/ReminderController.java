@@ -1,5 +1,23 @@
 package com.stackroute.keepnote.controller;
 
+import java.util.Date;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.stackroute.keepnote.model.Reminder;
 import com.stackroute.keepnote.service.ReminderService;
 
 /*
@@ -10,7 +28,7 @@ import com.stackroute.keepnote.service.ReminderService;
  * format. Starting from Spring 4 and above, we can use @RestController annotation which 
  * is equivalent to using @Controller and @ResposeBody annotation
  */
-
+@RestController
 public class ReminderController {
 
 	/*
@@ -31,9 +49,12 @@ public class ReminderController {
 	 * Constructor-based autowiring) Please note that we should not create any
 	 * object using the new keyword
 	 */
-
+	private Log log = LogFactory.getLog(getClass());
+	
+	private ReminderService reminderService;
+	
 	public ReminderController(ReminderService reminderService) {
-
+		this.reminderService = reminderService;
 	}
 
 	/*
@@ -50,7 +71,29 @@ public class ReminderController {
 	 * This handler method should map to the URL "/reminder" using HTTP POST
 	 * method".
 	 */
-
+	@PostMapping("/reminder")
+	public ResponseEntity<?> createReminder(@RequestBody Reminder reminder,HttpServletRequest request) {
+		log.info("createReminder : STARTED");
+		HttpHeaders headers = new HttpHeaders();
+		String loggedInUser =(String) request.getSession().getAttribute("loggedInUserId");
+		if(loggedInUser== null)
+		{
+			return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+		}
+		try {
+			reminder.setReminderCreatedBy(loggedInUser);
+			reminder.setReminderCreationDate(new Date());
+			if(reminderService.createReminder(reminder))
+			{
+				return new ResponseEntity<>(headers, HttpStatus.CREATED);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(headers, HttpStatus.CONFLICT);
+		}
+		log.info("createReminder : ENDED");
+		return new ResponseEntity<>(headers, HttpStatus.CONFLICT);
+	}
 	/*
 	 * Define a handler method which will delete a reminder from a database.
 	 * 
@@ -64,6 +107,25 @@ public class ReminderController {
 	 * method" where "id" should be replaced by a valid reminderId without {}
 	 */
 
+	@DeleteMapping("/reminder/{reminderId}")
+	public ResponseEntity<?> deleteReminder(@PathVariable("reminderId") int reminderId, HttpServletRequest request) {
+		log.info("deleteReminder : STARTED");
+		HttpHeaders headers = new HttpHeaders();
+		String loggedInUser = (String) request.getSession().getAttribute("loggedInUserId");
+		if (loggedInUser == null) {
+			return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+		}
+		try {
+			if (reminderService.deleteReminder(reminderId))
+			{
+				return new ResponseEntity<>(headers, HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		log.info("deleteReminder : ENDED");
+		return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
+	}
 	/*
 	 * Define a handler method which will update a specific reminder by reading the
 	 * Serialized object from request body and save the updated reminder details in
@@ -78,7 +140,30 @@ public class ReminderController {
 	 * This handler method should map to the URL "/reminder/{id}" using HTTP PUT
 	 * method.
 	 */
-
+	@PutMapping("/reminder/{reminderId}")
+	public ResponseEntity<?> updateReminder(@RequestBody Reminder reminder,
+												@PathVariable("reminderId") int reminderId
+													,HttpServletRequest request) {
+		log.info("updateReminder : STARTED");
+		HttpHeaders headers = new HttpHeaders();
+		String loggedInUser =(String) request.getSession().getAttribute("loggedInUserId");
+		if(loggedInUser== null)
+		{
+			return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+		}
+		try {	
+			
+			reminder.setReminderId(reminderId);
+			reminder.setReminderCreatedBy(loggedInUser);
+			if (reminderService.updateReminder(reminder, reminderId) != null) {
+				return new ResponseEntity<>(headers, HttpStatus.OK);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		log.info("updateReminder : ENDED");
+		return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
+	}
 	/*
 	 * Define a handler method which will get us the reminders by a userId.
 	 * 
@@ -90,7 +175,23 @@ public class ReminderController {
 	 * 
 	 * This handler method should map to the URL "/reminder" using HTTP GET method
 	 */
-
+	@GetMapping("/reminder")
+	public ResponseEntity<?> getAllRemindersByUserId(HttpServletRequest request) {
+		log.info("getAllRemindersByUserId : STARTED");
+		HttpHeaders headers = new HttpHeaders();
+		String loggedInUser =(String) request.getSession().getAttribute("loggedInUserId");
+		if(loggedInUser== null)
+		{
+			return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+		}
+		try {
+				reminderService.getAllReminderByUserId(loggedInUser);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		log.info("getAllRemindersByUserId : ENDED");
+		return new ResponseEntity<>(headers, HttpStatus.OK);
+	}
 	/*
 	 * Define a handler method which will show details of a specific reminder handle
 	 * ReminderNotFoundException as well. This handler method should return any one
@@ -101,5 +202,24 @@ public class ReminderController {
 	 * URL "/reminder/{id}" using HTTP GET method where "id" should be replaced by a
 	 * valid reminderId without {}
 	 */
-
+	@GetMapping("/reminder/{reminderId}")
+	public ResponseEntity<?> getReminder(@PathVariable("reminderId") int reminderId,HttpServletRequest request) {
+		log.info("getReminder : STARTED");
+		HttpHeaders headers = new HttpHeaders();
+		String loggedInUser =(String) request.getSession().getAttribute("loggedInUserId");
+		if(loggedInUser== null)
+		{
+			return new ResponseEntity<>(headers, HttpStatus.UNAUTHORIZED);
+		}
+		try {
+				if(reminderService.getReminderById(reminderId)!=null)
+				{
+					return new ResponseEntity<>(headers, HttpStatus.OK);
+				}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		log.info("getReminder : ENDED");
+		return new ResponseEntity<>(headers, HttpStatus.NOT_FOUND);
+	}
 }
